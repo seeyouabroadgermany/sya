@@ -44,8 +44,7 @@ sya/
 │  │  └─ 0004_pipeline_cz.sql   8 Czech stages + every sub-step + document types
 │  └─ seed.sql                  demo data: 2 staff, 5 universities, 20 students
 ├─ scripts/
-│  ├─ create-admin.ts           makes the first admin (uses service key, run locally)
-│  └─ seed-demo-users.ts        creates the 2 demo staff logins on a hosted project
+│  └─ create-admin.ts           makes the first admin (uses the secret key, run locally)
 ├─ src/
 │  ├─ app/
 │  │  ├─ (auth)/login, forgot-password, reset-password
@@ -199,11 +198,11 @@ No Supabase or Vercel tools are connected to this session, so I'll give you exac
 15. **Emails (Resend)** — free, but to send to your team's addresses Resend needs a **verified domain** (e.g. seeyouabroad.in, DNS records). Until then it can only send to the Resend account owner's address. Emails are optional: the app works without the key and just skips sending.
 16. **Vercel plan** — Vercel's free Hobby plan is officially for non-commercial use; the plan suggests Pro ($20/month) in production. I won't add anything paid — your call when you go live. Daily cron works on Hobby.
 17. **Weekly backup** — the architecture shows a weekly GitHub Action export "to a separate storage account". Free option: a GitHub Action that runs `pg_dump` weekly and saves the file as a private, encrypted workflow artifact (kept 90 days). Any external storage account would be a new service — I'll ask first.
-18. **Demo staff logins in the seed** — Supabase logins can't be created by plain SQL on a hosted project, so the 2 demo staff are created by a small script (`scripts/seed-demo-users.ts`) and the SQL seed attaches demo students to them.
+18. **Demo logins in the seed** — `supabase/seed.sql` creates 3 demo logins (admin + 2 counsellors, password `syb-demo-2026`) directly. Use it only locally or on a test project, never on the live one.
 19. **Supabase free tier pauses after a week with no activity** and has no automatic backups (plan notes this). Fine while testing; Pro ($25/month) when live — your decision.
 
 **Testing note (Step 0):** Python Playwright installed fine. I did **not** run `playwright install chromium`, because this environment already has Chromium pre-installed and installing another copy can conflict with it. Test scripts point Playwright at the existing browser (`/opt/pw-browsers/chromium`). On your own computer, `pip install playwright && playwright install chromium` is the normal way.
 
 ---
 
-**Waiting for your OK** (and answers to 1, 3 and anything above you disagree with) before starting Phase 1.
+**Decisions confirmed:** brand blue = plan's `#1E5EFF` (dark) / `#1A4FE0` (light); Next.js 16.
