@@ -81,11 +81,13 @@ Pick **one** of these.
    ```
    This runs every file in `supabase/migrations` in order.
 
-**Option B, by copy and paste:**
+**Option B, by copy and paste (no installs needed):**
 
-1. In Supabase, open **SQL Editor → New query**.
-2. Open `supabase/migrations/20261026000001_schema.sql`, copy everything, paste it, click **Run**.
-3. Do the same for `…000002_functions.sql`, then `…000003_rls.sql`, then `…000004_pipeline_cz.sql`, in that order.
+1. In GitHub, open `supabase/setup/all-in-one.sql` and click **Raw**, then select all and copy.
+2. In Supabase, open **SQL Editor → New query**, paste, click **Run**. It should say "Success. No rows returned".
+3. Check: **Table Editor → stages** shows 8 rows (Lead / Counselling … Visa).
+
+Run it once, on a new project. (`all-in-one.sql` is every file in `supabase/migrations` joined together; after adding a migration, run `npm run db:bundle` to rebuild it.)
 
 > Do **not** run `supabase/seed.sql` on the live project. It creates demo logins with a known password. Use it only on a separate test project.
 
