@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getMe } from "@/lib/auth";
+import { notifyAssignment } from "@/lib/notify";
 import { createClient } from "@/lib/supabase/server";
 import { fail, friendlyError, type ActionResult } from "./result";
 
@@ -65,6 +66,7 @@ export async function createLead(input: z.input<typeof leadSchema>): Promise<Act
     .select("id")
     .single();
   if (error) return fail(friendlyError(error));
+  if (me.isAdmin && assignedTo) await notifyAssignment(assignedTo, [data.id]);
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data.id } };
 }
@@ -85,6 +87,7 @@ const detailsSchema = z.object({
   budget_range: optionalText,
   lead_source: z.enum(["instagram", "referral", "walk_in", "website", "whatsapp", "other"]),
   referred_by: optionalText,
+  heard_about: z.enum(["instagram", "referral", "walk_in", "website", "whatsapp", "other"]).nullable().optional(),
   drive_folder_url: z
     .union([z.url({ protocol: /^https$/, message: "Paste the full Drive link (https://…)" }), z.literal("")])
     .optional()
@@ -129,6 +132,7 @@ export async function assignStudent(id: string, profileId: string | null): Promi
   const supabase = await createClient();
   const { error } = await supabase.from("students").update({ assigned_to: profileId }).eq("id", id);
   if (error) return fail(friendlyError(error));
+  await notifyAssignment(profileId, [id]);
   revalidatePath("/", "layout");
   return { ok: true };
 }

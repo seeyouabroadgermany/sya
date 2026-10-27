@@ -186,3 +186,24 @@ begin
   ) as t(name, title, offset_days) on t.name = s.full_name;
 end
 $$;
+
+-- Documents: received from Apostille on, verified from Pre-enrollment on.
+update public.student_documents sd
+set status = case when b.stage_position >= 5 then 'verified' else 'received' end::public.doc_status
+from public.student_board b
+where b.id = sd.student_id and b.stage_position >= 3;
+update public.student_documents sd
+set status = 'received'
+from public.student_board b, public.document_types dt
+where b.id = sd.student_id and dt.id = sd.document_type_id and b.stage_position = 2 and dt.name in ('Passport', '12th certificate');
+
+-- Website leads waiting in the inbox.
+update public.students set heard_about = 'instagram', course_interest = 'MBA', budget_range = '₹10–15 lakh', city = 'Kannur'
+where full_name = 'Sreya Raveendran';
+insert into public.students (full_name, phone, whatsapp, email, city, level, intake_month, intake_year, lead_source, heard_about,
+                             course_interest, budget_range, parent_name, parent_phone, consent_at)
+values
+  ('Nandana Prakash', '+91 94470 11221', '+91 94470 11221', 'nandana.p@example.com', 'Kozhikode', 'bachelor', 9, 2027,
+   'website', 'referral', 'BSc Computer Science', '₹6–10 lakh', 'Prakash K', '+91 94950 31221', now()),
+  ('Fathima Rinsha', '+91 94470 11202', '+91 94470 11202', 'rinsha.f@example.com', 'Malappuram', 'bachelor', 9, 2027,
+   'website', 'instagram', 'Pharmacy', '₹6–10 lakh', null, null, now());

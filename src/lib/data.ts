@@ -36,6 +36,8 @@ export type BoardFilters = {
   level?: string;
   stuck?: boolean;
   q?: string;
+  stage?: string;
+  status?: string; // "open" (default), "all", or one status
 };
 
 export function parseBoardFilters(sp: Record<string, string | string[] | undefined>): BoardFilters {
@@ -47,6 +49,8 @@ export function parseBoardFilters(sp: Record<string, string | string[] | undefin
     level: one("level"),
     stuck: one("stuck") === "1",
     q: one("q"),
+    stage: one("stage"),
+    status: one("status"),
   };
 }
 
@@ -63,6 +67,7 @@ export async function getBoard(filters: BoardFilters, statuses: Database["public
   else if (filters.counsellor && /^[0-9a-f-]{36}$/.test(filters.counsellor)) query = query.eq("assigned_to", filters.counsellor);
   if (filters.level === "bachelor" || filters.level === "master") query = query.eq("level", filters.level);
   if (filters.stuck) query = query.eq("is_stuck", true);
+  if (filters.stage && /^[0-9a-f-]{36}$/.test(filters.stage)) query = query.eq("current_stage_id", filters.stage);
   if (filters.q) {
     const q = filters.q.replace(/[%,()]/g, " ").trim();
     if (q) query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
@@ -91,7 +96,7 @@ export type StudentStep = Database["public"]["Tables"]["student_steps"]["Row"];
 // Everything the student profile needs, in parallel. RLS decides what comes back.
 export const getStudentProfile = cache(async (id: string) => {
   const supabase = await createClient();
-  const [student, board, steps, studentSteps, shortlist, activity, tasks] = await Promise.all([
+  const [student, board, steps, studentSteps, shortlist, activity, tasks, documents, payments] = await Promise.all([
     supabase.from("students").select("*").eq("id", id).maybeSingle(),
     supabase.from("student_board").select("*").eq("id", id).maybeSingle(),
     supabase.from("stage_steps").select("*").eq("active", true).order("position"),
@@ -113,6 +118,12 @@ export const getStudentProfile = cache(async (id: string) => {
       .eq("student_id", id)
       .order("done")
       .order("due_on"),
+    supabase
+      .from("student_documents")
+      .select("status, updated_at, document_type:document_types!inner(id, name, required, position, active), checker:profiles(full_name)")
+      .eq("student_id", id)
+      .eq("document_type.active", true),
+    supabase.from("payments").select("*").eq("student_id", id).order("created_at"),
   ]);
   if (!student.data || !board.data) return null;
   return {
@@ -123,6 +134,8 @@ export const getStudentProfile = cache(async (id: string) => {
     shortlist: shortlist.data ?? [],
     activity: activity.data ?? [],
     tasks: tasks.data ?? [],
+    documents: (documents.data ?? []).sort((a, b) => a.document_type.position - b.document_type.position),
+    payments: payments.data ?? [],
   };
 });
 export type StudentProfile = NonNullable<Awaited<ReturnType<typeof getStudentProfile>>>;
@@ -156,3 +169,90 @@ export async function getToday() {
   };
 }
 export type TodayData = Awaited<ReturnType<typeof getToday>>;
+
+type Status = Database["public"]["Enums"]["student_status"];
+const STATUS_VALUES: Status[] = ["active", "on_hold", "lost", "completed"];
+
+// Students table: same filters as the board plus stage and status.
+export async function getStudentList(filters: BoardFilters) {
+  const statuses: Status[] =
+    filters.status === "everyone"
+      ? STATUS_VALUES
+      : STATUS_VALUES.includes(filters.status as Status)
+        ? [filters.status as Status]
+        : ["active", "on_hold"];
+  return getBoard(filters, statuses);
+}
+
+const digits = (p: string | null) => (p ?? "").replace(/\D/g, "").slice(-10);
+
+// Admin inbox: unassigned, still-open leads, newest first, with a duplicate-phone hint.
+export async function getInbox() {
+  const supabase = await createClient();
+  const [{ data: leads }, { data: all }] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, full_name, phone, email, city, level, intake_month, intake_year, course_interest, budget_range, lead_source, heard_about, referred_by, parent_name, created_at")
+      .is("assigned_to", null)
+      .in("status", ["active", "on_hold"])
+      .order("created_at", { ascending: false }),
+    supabase.from("students").select("id, full_name, phone, assigned_to, counsellor:profiles!students_assigned_to_fkey(full_name)"),
+  ]);
+  const byPhone = new Map<string, { id: string; full_name: string; counsellor: string | null }[]>();
+  for (const s of all ?? []) {
+    const key = digits(s.phone);
+    if (key.length < 8) continue;
+    byPhone.set(key, [...(byPhone.get(key) ?? []), { id: s.id, full_name: s.full_name, counsellor: s.counsellor?.full_name ?? null }]);
+  }
+  return (leads ?? []).map((l) => ({
+    ...l,
+    duplicates: (byPhone.get(digits(l.phone)) ?? []).filter((d) => d.id !== l.id),
+  }));
+}
+export type InboxLead = Awaited<ReturnType<typeof getInbox>>[number];
+
+export async function getPayments(filters: { intake?: string; status?: string; kind?: string }) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("payments")
+    .select("id, kind, amount, currency, status, due_date, paid_on, note, created_at, student:students!inner(id, full_name, intake_month, intake_year, counsellor:profiles!students_assigned_to_fkey(full_name))")
+    .order("status", { ascending: true })
+    .order("due_date", { ascending: true, nullsFirst: false });
+  if (filters.intake && /^\d{1,2}-\d{4}$/.test(filters.intake)) {
+    const [m, y] = filters.intake.split("-").map(Number);
+    query = query.eq("student.intake_month", m).eq("student.intake_year", y);
+  }
+  if (filters.status === "paid" || filters.status === "pending") query = query.eq("status", filters.status);
+  if (["agency", "university", "nostrification", "other"].includes(filters.kind ?? ""))
+    query = query.eq("kind", filters.kind as Database["public"]["Enums"]["payment_kind"]);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+export type PaymentRow = Awaited<ReturnType<typeof getPayments>>[number];
+
+// Little numbers for the navigation badges.
+export async function getNavCounts(isAdmin: boolean) {
+  const supabase = await createClient();
+  const today = new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+  const [due, stuck, tasks, inbox] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["active", "on_hold"])
+      .lte("next_followup_on", today),
+    supabase.from("student_board").select("id", { count: "exact", head: true }).eq("is_stuck", true),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("done", false).lte("due_on", today),
+    isAdmin
+      ? supabase
+          .from("students")
+          .select("id", { count: "exact", head: true })
+          .is("assigned_to", null)
+          .in("status", ["active", "on_hold"])
+      : Promise.resolve({ count: 0 }),
+  ]);
+  return {
+    today: (due.count ?? 0) + (stuck.count ?? 0) + (tasks.count ?? 0),
+    leads: inbox.count ?? 0,
+  };
+}

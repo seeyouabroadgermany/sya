@@ -126,6 +126,38 @@ select pg_temp.check(true, 'staff can add a note');
 with u as (update public.stages set name = 'X' returning 1)
 select pg_temp.check((select count(*) from u) = 0, 'staff cannot edit stages');
 
+-- phase 2: money, documents, settings and server-only functions
+with u as (update public.student_documents set status = 'verified' where student_id = (select rahul_student from ids) returning 1)
+select pg_temp.check((select count(*) from u) = 0, 'staff cannot tick another student''s documents');
+do $$
+begin
+  begin
+    insert into public.payments (student_id, kind, amount) values ((select rahul_student from ids), 'agency', 1);
+    raise exception 'FAIL: staff added a payment to another student';
+  exception when insufficient_privilege then
+    raise notice 'ok  staff cannot add payments to another counsellor''s student';
+  end;
+end $$;
+insert into public.payments (student_id, kind, amount) values ((select anjali_student from ids), 'agency', 1000);
+select pg_temp.check(true, 'staff can add a payment to their own student');
+with u as (update public.app_settings set round_robin_enabled = true returning 1)
+select pg_temp.check((select count(*) from u) = 0, 'staff cannot change app settings');
+do $$
+begin
+  begin
+    perform public.pick_round_robin();
+    raise exception 'FAIL: staff called pick_round_robin';
+  exception when insufficient_privilege then
+    raise notice 'ok  staff cannot call server-only round-robin';
+  end;
+  begin
+    perform public.lead_rate_limit_hit('x');
+    raise exception 'FAIL: staff called lead_rate_limit_hit';
+  exception when insufficient_privilege then
+    raise notice 'ok  staff cannot call server-only rate limit';
+  end;
+end $$;
+
 -- tick the open steps, then the move succeeds and is logged
 update public.student_steps ss set done = true
 from public.stage_steps st join public.stages sg on sg.id = st.stage_id

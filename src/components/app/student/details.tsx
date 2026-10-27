@@ -59,6 +59,7 @@ export function DetailsTab({
     budget_range: student.budget_range ?? "",
     lead_source: student.lead_source as LeadSource,
     referred_by: student.referred_by ?? "",
+    heard_about: (student.heard_about ?? "") as LeadSource | "",
     drive_folder_url: student.drive_folder_url ?? "",
     parent_name: student.parent_name ?? "",
     parent_phone: student.parent_phone ?? "",
@@ -72,6 +73,7 @@ export function DetailsTab({
       const res = await updateStudentDetails(student.id, {
         ...f,
         level: f.level || null,
+        heard_about: f.heard_about || null,
         intake_month: f.intake_month ? Number(f.intake_month) : null,
         intake_year: f.intake_year ? Number(f.intake_year) : null,
       });
@@ -173,6 +175,20 @@ export function DetailsTab({
           </Field>
           <Field label="Referred by" htmlFor="d-ref">
             <Input id="d-ref" value={f.referred_by} onChange={set("referred_by")} />
+          </Field>
+          <Field label="First heard about us via">
+            <Select value={f.heard_about} onValueChange={(v) => setF({ ...f, heard_about: v as LeadSource })}>
+              <SelectTrigger className="w-full" aria-label="First heard about us via">
+                <SelectValue placeholder="Not recorded" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_SOURCES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </Group>
 

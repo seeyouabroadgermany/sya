@@ -14,13 +14,32 @@ import { ThemeToggle } from "./theme-toggle";
 
 type ShellUser = { fullName: string; email: string | null; isAdmin: boolean };
 
+type Counts = { today: number; leads: number };
+
+function Badge({ n, tone = "neutral", className }: { n: number; tone?: "neutral" | "brand"; className?: string }) {
+  if (!n) return null;
+  return (
+    <span
+      className={cn(
+        "num min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 font-medium",
+        tone === "brand" ? "bg-brand text-white" : "bg-surface-2 text-text",
+        className,
+      )}
+    >
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
+
 export function AppShell({
   user,
   counsellors,
+  counts,
   children,
 }: {
   user: ShellUser;
   counsellors: Counsellor[];
+  counts: Counts;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -30,6 +49,8 @@ export function AppShell({
   const mobileItems = items.filter((n) => n.mobile);
   const leftTabs = mobileItems.slice(0, 2);
   const rightTabs = mobileItems.slice(2, 3);
+  const badgeFor = (item: (typeof NAV)[number]) => (item.badge ? counts[item.badge] : 0);
+  const moreBadge = items.filter((i) => !i.mobile).reduce((n, i) => n + badgeFor(i), 0);
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
@@ -63,7 +84,8 @@ export function AppShell({
                 )}
               >
                 <item.icon className={cn("size-4", active && "text-brand-ink")} />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                <Badge n={badgeFor(item)} tone={item.badge === "leads" ? "brand" : "neutral"} />
               </Link>
             );
           })}
@@ -97,7 +119,7 @@ export function AppShell({
       >
         <div className="grid h-16 grid-cols-5 items-center">
           {leftTabs.map((item) => (
-            <TabLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+            <TabLink key={item.href} item={item} active={isActive(pathname, item.href)} badge={badgeFor(item)} />
           ))}
           {Array.from({ length: 2 - leftTabs.length }).map((_, i) => (
             <span key={i} />
@@ -113,16 +135,17 @@ export function AppShell({
             </button>
           </div>
           {rightTabs.map((item) => (
-            <TabLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+            <TabLink key={item.href} item={item} active={isActive(pathname, item.href)} badge={badgeFor(item)} />
           ))}
           {rightTabs.length === 0 && <span />}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            className="flex flex-col items-center gap-1 text-[11px] text-subtle"
+            className="relative flex flex-col items-center gap-1 text-[11px] text-subtle"
           >
             <Menu className="size-5" />
             More
+            {moreBadge > 0 && <span className="absolute top-0 right-[calc(50%-16px)] size-2 rounded-full bg-brand" aria-label="New leads waiting" />}
           </button>
         </div>
       </nav>
@@ -149,7 +172,8 @@ export function AppShell({
                   className="flex h-11 items-center gap-3 rounded-lg px-3 text-sm hover:bg-surface-2"
                 >
                   <item.icon className="size-4 text-subtle" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  <Badge n={badgeFor(item)} tone={item.badge === "leads" ? "brand" : "neutral"} />
                 </Link>
               ))}
             <ThemeToggle withLabel className="h-11 text-text" />
@@ -167,15 +191,16 @@ export function AppShell({
   );
 }
 
-function TabLink({ item, active }: { item: (typeof NAV)[number]; active: boolean }) {
+function TabLink({ item, active, badge }: { item: (typeof NAV)[number]; active: boolean; badge: number }) {
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={cn("flex flex-col items-center gap-1 text-[11px] text-subtle", active && "text-text")}
+      className={cn("relative flex flex-col items-center gap-1 text-[11px] text-subtle", active && "text-text")}
     >
       <item.icon className={cn("size-5", active && "text-brand-ink")} />
       {item.label}
+      <Badge n={badge} className="absolute -top-1.5 left-[calc(50%+4px)] min-w-4 px-1 text-[10px] leading-4" />
     </Link>
   );
 }

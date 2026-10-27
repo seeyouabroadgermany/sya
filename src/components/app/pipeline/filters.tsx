@@ -16,9 +16,11 @@ export type FilterOptions = {
   intakes: { value: string; month: number; year: number }[];
   universities: { id: string; name: string }[];
   counsellors: { id: string; full_name: string }[] | null; // null = hide (staff)
+  stages?: { id: string; name: string; position: number }[]; // Students page only
+  showStatus?: boolean;
 };
 
-const KEYS = ["intake", "university", "counsellor", "level", "stuck"] as const;
+const KEYS = ["intake", "university", "counsellor", "level", "stuck", "stage", "status"] as const;
 
 export function BoardFilters({ options }: { options: FilterOptions }) {
   const router = useRouter();
@@ -38,6 +40,20 @@ export function BoardFilters({ options }: { options: FilterOptions }) {
 
   const controls = (
     <>
+      {options.stages && (
+        <FilterSelect label="Stage" allLabel="All stages" value={params.get("stage")} onChange={(v) => set("stage", v)}
+          items={options.stages.map((s) => ({ value: s.id, label: `${s.position}. ${s.name}` }))} />
+      )}
+      {options.showStatus && (
+        <FilterSelect label="Status" allLabel="Active and on hold" value={params.get("status")} onChange={(v) => set("status", v)}
+          items={[
+            { value: "active", label: "Active" },
+            { value: "on_hold", label: "On hold" },
+            { value: "completed", label: "Completed" },
+            { value: "lost", label: "Lost" },
+            { value: "everyone", label: "Everyone" },
+          ]} />
+      )}
       <FilterSelect label="Intake" allLabel="All intakes" value={params.get("intake")} onChange={(v) => set("intake", v)}
         items={options.intakes.map((i) => ({ value: i.value, label: `${MONTHS[i.month - 1]} ${i.year}` }))} />
       <FilterSelect label="University" allLabel="All universities" value={params.get("university")} onChange={(v) => set("university", v)}

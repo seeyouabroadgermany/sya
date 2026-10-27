@@ -116,8 +116,10 @@ In Supabase, open **Project Settings → API Keys** and **Project Settings → D
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | API Keys → Publishable key (`sb_publishable_…`) | No, safe in the browser |
 | `SUPABASE_SECRET_KEY` | API Keys → Secret keys → reveal (`sb_secret_…`) | **Yes.** Server only. Never share it, never commit it |
 | `NEXT_PUBLIC_SITE_URL` | Your live address, e.g. `https://syb-crm.vercel.app` | No |
+| `RESEND_API_KEY` | Optional, see step 7 | **Yes** |
+| `EMAIL_FROM` | Optional, see step 7 | No |
 
-Put them in `.env.local` on your computer (this file is ignored by git) and in Vercel (next step).
+Put them in `.env.local` on your computer (this file is ignored by git) and in Vercel (next step). The last two are optional.
 
 ### 5. Push to GitHub and deploy on Vercel
 
@@ -152,12 +154,30 @@ It asks you to type a password, then creates the admin. Running it for an existi
 
 Then sign in at your Vercel address. Staff invites from inside the CRM arrive in Phase 3; until then, add staff the same way as Option B without the SQL (new users are counsellors by default).
 
+### 7. Optional: email counsellors when they get a new student
+
+The CRM emails a counsellor when a lead is assigned to them (one at a time, in bulk, or automatically). This uses Resend, which is free for a small team. Without it everything else works; emails are just skipped.
+
+1. Sign up at https://resend.com (free plan).
+2. **Domains → Add domain**, enter your domain (e.g. `seeyouabroad.in`), and add the DNS records it shows at your domain provider. Wait until it says **Verified**.
+3. **API Keys → Create API key** (permission: Sending access). Copy it.
+4. In Vercel **Settings → Environment Variables** add:
+   - `RESEND_API_KEY` = the key
+   - `EMAIL_FROM` = `SYB CRM <crm@seeyouabroad.in>` (any address on the verified domain)
+5. Redeploy.
+
+### 8. Share the enquiry form
+
+The public form is at `https://YOUR-ADDRESS/apply`. Put that link in your Instagram bio, WhatsApp status and website. New enquiries appear in **New leads** for the admin. Turn on **Auto-assign website leads** there to share them among counsellors in turn.
+
+The form has a consent checkbox (India's DPDP Act), a hidden spam trap, and a limit of 5 enquiries per hour from one connection.
+
 ---
 
 ## How the security works
 
 - Every table has Row Level Security. A counsellor's database session can only read or change students where `assigned_to` is their own id, plus those students' steps, documents, payments, tasks and history.
-- Anonymous visitors have no access to any table. The public lead form (Phase 2) writes through server code.
+- Anonymous visitors have no access to any table. The public `/apply` form writes through server code, with a spam trap and a rate limit.
 - The secret key is only used in server files marked `server-only`. It is never sent to the browser.
 - Stage moves are checked in the database: a student can't move forward until every required, visible step is done. Admin can override with a written reason, which is saved in the history.
 - Every stage change, step tick, payment change and reassignment is written to `activity_log` by database triggers, with who did it and when.

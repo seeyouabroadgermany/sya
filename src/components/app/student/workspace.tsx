@@ -5,7 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Stage, StudentProfile } from "@/lib/data";
 import { ActivityTab } from "./activity";
 import { DetailsTab } from "./details";
+import { DocumentsTab } from "./documents";
 import { StudentHeader } from "./header";
+import { PaymentsTab } from "./payments";
 import { ProgressTab } from "./progress";
 import { FollowupCard, StudentTasksCard } from "./side-cards";
 
@@ -45,9 +47,21 @@ export function StudentWorkspace({
           </div>
         </aside>
         <Tabs value={tab} onValueChange={setTab} className="min-w-0 md:col-start-1 md:row-start-1">
-          <TabsList variant="line" className="w-full justify-start gap-4 border-b border-line">
+          <TabsList variant="line" className="scrollbar-none w-full justify-start gap-4 overflow-x-auto border-b border-line">
             <TabsTrigger value="progress" className="flex-none px-0">Progress</TabsTrigger>
             <TabsTrigger value="details" className="flex-none px-0">Details</TabsTrigger>
+            <TabsTrigger value="documents" className="flex-none px-0">
+              Documents{" "}
+              <span className="num text-xs text-subtle">
+                {profile.board.docs_ready}/{profile.board.docs_total}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex-none px-0">
+              Payments
+              {(profile.board.payments_pending ?? 0) > 0 && (
+                <span className="num text-xs text-warning">{profile.board.payments_pending}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="activity" className="flex-none px-0">Activity</TabsTrigger>
           </TabsList>
           <TabsContent value="progress" className="pt-3">
@@ -69,6 +83,20 @@ export function StudentWorkspace({
           </TabsContent>
           <TabsContent value="details" className="pt-5">
             <DetailsTab student={s} shortlist={profile.shortlist} universities={universities} />
+          </TabsContent>
+          <TabsContent value="documents" className="pt-5">
+            <DocumentsTab
+              studentId={s.id}
+              documents={profile.documents}
+              driveUrl={s.drive_folder_url}
+              onAddDrive={() => {
+                setTab("details");
+                setTimeout(() => document.getElementById("d-drive")?.focus(), 50);
+              }}
+            />
+          </TabsContent>
+          <TabsContent value="payments" className="pt-5">
+            <PaymentsTab studentId={s.id} studentName={s.full_name} payments={profile.payments} />
           </TabsContent>
           <TabsContent value="activity" className="pt-5">
             <ActivityTab studentId={s.id} items={profile.activity} />

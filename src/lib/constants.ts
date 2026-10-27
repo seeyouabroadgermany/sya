@@ -34,3 +34,28 @@ export const MONTHS = [
 
 export const labelOf = <T extends string>(list: { value: T; label: string }[], value: T | null | undefined) =>
   list.find((o) => o.value === value)?.label ?? "";
+
+export type PaymentKind = Enums["payment_kind"];
+export type Currency = Enums["currency_code"];
+export type DocStatus = Enums["doc_status"];
+
+export const PAYMENT_KINDS: { value: PaymentKind; label: string }[] = [
+  { value: "agency", label: "Agency fee" },
+  { value: "university", label: "University fee" },
+  { value: "nostrification", label: "Nostrification fee" },
+  { value: "other", label: "Other" },
+];
+
+// Usual currency for each kind of payment; can be changed per payment.
+export const DEFAULT_CURRENCY: Record<PaymentKind, Currency> = {
+  agency: "INR",
+  university: "CZK",
+  nostrification: "CZK",
+  other: "INR",
+};
+
+export const CURRENCIES: { value: Currency; label: string }[] = [
+  { value: "INR", label: "₹ INR" },
+  { value: "CZK", label: "Kč CZK" },
+  { value: "EUR", label: "€ EUR" },
+];
