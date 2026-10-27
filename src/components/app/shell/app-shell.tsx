@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, Plus } from "lucide-react";
+import { LogOut, Menu, Plus, UserRound } from "lucide-react";
 import { Logo } from "@/components/app/logo";
 import { PersonAvatar } from "@/components/app/avatar";
 import { QuickLeadSheet, type Counsellor } from "@/components/app/quick-lead";
@@ -91,13 +91,17 @@ export function AppShell({
           })}
         </nav>
         <div className="space-y-1 border-t border-line p-3">
-          <div className="flex items-center gap-3 px-2 py-2">
+          <Link
+            href="/account"
+            aria-current={pathname === "/account" ? "page" : undefined}
+            className={cn("flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-surface-2", pathname === "/account" && "bg-surface-2")}
+          >
             <PersonAvatar name={user.fullName} className="size-8 text-xs" />
             <div className="min-w-0 text-sm">
               <div className="truncate font-medium">{user.fullName}</div>
-              <div className="truncate text-xs text-subtle">{user.isAdmin ? "Admin" : "Counsellor"}</div>
+              <div className="truncate text-xs text-subtle">{user.isAdmin ? "Admin" : "Counsellor"}, my account</div>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-1">
             <ThemeToggle />
             <form action="/auth/signout" method="post" className="flex-1">
@@ -176,6 +180,10 @@ export function AppShell({
                   <Badge n={badgeFor(item)} tone={item.badge === "leads" ? "brand" : "neutral"} />
                 </Link>
               ))}
+            <Link href="/account" onClick={() => setMoreOpen(false)} className="flex h-11 items-center gap-3 rounded-lg px-3 text-sm hover:bg-surface-2">
+              <UserRound className="size-4 text-subtle" />
+              My account
+            </Link>
             <ThemeToggle withLabel className="h-11 text-text" />
             <form action="/auth/signout" method="post">
               <button className="flex h-11 w-full items-center gap-2 rounded-lg px-3 text-sm hover:bg-surface-2">

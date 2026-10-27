@@ -9,7 +9,15 @@ export async function sendEmail(to: string | string[], subject: string, html: st
   const from = process.env.EMAIL_FROM;
   const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
   if (!key || !from || recipients.length === 0) {
-    if (process.env.NODE_ENV !== "production") console.info(`[email skipped] ${subject} -> ${recipients.join(", ")}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`[email skipped] ${subject} -> ${recipients.join(", ")}`);
+      // In development, keep a copy so emails can be checked in a browser.
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      const dir = `${process.cwd()}/.email-previews`;
+      await mkdir(dir, { recursive: true });
+      const file = `${Date.now()}-${recipients[0]?.replace(/[^a-z0-9]/gi, "_")}.html`;
+      await writeFile(`${dir}/${file}`, `<!-- To: ${recipients.join(", ")} | Subject: ${subject} -->\n${html}`);
+    }
     return false;
   }
   try {

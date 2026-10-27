@@ -196,6 +196,34 @@ select pg_temp.check(
 update public.students set assigned_to = (select anjali from ids) where id = (select rahul_student from ids);
 select pg_temp.check(exists (select 1 from public.activity_log where student_id = (select rahul_student from ids) and kind = 'assignment'), 'admin can reassign (logged)');
 
+-- ---------------------------------------------------------------- admin two-step login
+reset role;
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret)
+values (gen_random_uuid(), (select admin_id from ids), 'test', 'totp', 'verified', now(), now(), 'x');
+select pg_temp.act_as((select admin_id from ids));
+select pg_temp.check((select count(*) from public.students) = 0, 'admin with 2FA on but no code entered sees no students');
+select pg_temp.check(not public.is_admin(), 'admin rights wait for the second step');
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select admin_id from ids), 'role', 'authenticated', 'aal', 'aal2')::text, true);
+select pg_temp.check((select count(*) from public.students) >= 20, 'admin sees everything after entering the code');
+reset role;
+
+-- staff cannot touch settings tables
+select pg_temp.act_as((select anjali from ids));
+with u as (update public.message_templates set body = 'x' returning 1)
+select pg_temp.check((select count(*) from u) = 0, 'staff cannot edit WhatsApp templates');
+with u as (update public.document_types set required = false returning 1)
+select pg_temp.check((select count(*) from u) = 0, 'staff cannot edit document types');
+do $$
+begin
+  perform public.reorder_stages(array(select id from public.stages order by position desc));
+  if exists (select 1 from public.stages where position = 1 and name <> 'Lead / Counselling') then
+    raise exception 'FAIL: staff reordered stages';
+  end if;
+  raise notice 'ok  staff cannot reorder stages';
+end $$;
+reset role;
+
 -- ---------------------------------------------------------------- anonymous
 reset role;
 set local role anon;

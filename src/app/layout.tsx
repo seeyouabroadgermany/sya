@@ -10,16 +10,14 @@ export const metadata: Metadata = {
   description: "See You Abroad student pipeline",
   applicationName: "SYB CRM",
   robots: { index: false, follow: false },
+  appleWebApp: { capable: true, title: "SYB CRM", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0b" },
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-  ],
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -27,6 +27,10 @@ export const getMe = cache(async (): Promise<Me> => {
   if (error) throw new Error("Could not load your profile");
   if (!profile || !profile.active) redirect("/auth/signout?reason=disabled");
 
+  // Two-step login switched on, but this session hasn't entered the code yet.
+  const { data: codeNeeded } = await supabase.rpc("mfa_code_needed");
+  if (codeNeeded) redirect("/mfa");
+
   return {
     id: profile.id,
     fullName: profile.full_name,

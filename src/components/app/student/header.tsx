@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, FolderOpen, Loader2, Mail, MessageCircle, Phone } from "lucide-react";
+import { ChevronDown, ChevronLeft, FolderOpen, Loader2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,9 +25,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RouteRail } from "@/components/app/route-rail";
+import { WhatsAppButton, type Template } from "./whatsapp";
 import { assignStudent, setStatus } from "@/lib/actions/students";
 import { STATUSES, labelOf, type StudentStatus } from "@/lib/constants";
-import { telLink, whatsappLink } from "@/lib/format";
+import { telLink } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { StudentProfile } from "@/lib/data";
 
@@ -38,7 +39,11 @@ export function StudentHeader({
   team,
   lostOpen,
   setLostOpen,
+  templates,
+  myName,
 }: {
+  templates: Template[];
+  myName: string;
   profile: StudentProfile;
   totalStages: number;
   isAdmin: boolean;
@@ -50,7 +55,6 @@ export function StudentHeader({
   const [pending, start] = useTransition();
   const [reason, setReason] = useState("");
   const tel = telLink(s.phone);
-  const wa = whatsappLink(s.whatsapp || s.phone);
 
   function changeStatus(status: StudentStatus, why?: string) {
     start(async () => {
@@ -63,10 +67,9 @@ export function StudentHeader({
   }
 
   const contact = [
-    { label: "Call", icon: Phone, href: tel },
-    { label: "WhatsApp", icon: MessageCircle, href: wa, external: true },
-    { label: "Email", icon: Mail, href: s.email ? `mailto:${s.email}` : null },
-    { label: "Drive", icon: FolderOpen, href: s.drive_folder_url, external: true },
+    { label: "Call", icon: Phone, href: tel, order: "order-1" },
+    { label: "Email", icon: Mail, href: s.email ? `mailto:${s.email}` : null, order: "order-3" },
+    { label: "Drive", icon: FolderOpen, href: s.drive_folder_url, external: true, order: "order-4" },
   ];
 
   return (
@@ -133,9 +136,15 @@ export function StudentHeader({
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <div className="grid flex-1 grid-cols-4 gap-2 sm:flex sm:flex-none">
+          <WhatsAppButton
+            profile={profile}
+            templates={templates}
+            myName={myName}
+            className="order-2 h-12 flex-col gap-0.5 text-xs sm:h-9 sm:flex-row sm:gap-1.5 sm:text-sm"
+          />
           {contact.map((c) =>
             c.href ? (
-              <Button key={c.label} variant="outline" asChild className="h-12 flex-col gap-0.5 text-xs sm:h-9 sm:flex-row sm:gap-1.5 sm:text-sm">
+              <Button key={c.label} variant="outline" asChild className={cn(c.order, "h-12 flex-col gap-0.5 text-xs sm:h-9 sm:flex-row sm:gap-1.5 sm:text-sm")}>
                 <a href={c.href} target={c.external ? "_blank" : undefined} rel={c.external ? "noopener noreferrer" : undefined}>
                   <c.icon />
                   {c.label}
@@ -147,7 +156,7 @@ export function StudentHeader({
                 variant="outline"
                 disabled
                 title={`No ${c.label === "Drive" ? "Drive folder" : c.label.toLowerCase()} saved`}
-                className="h-12 flex-col gap-0.5 text-xs sm:h-9 sm:flex-row sm:gap-1.5 sm:text-sm"
+                className={cn(c.order, "h-12 flex-col gap-0.5 text-xs sm:h-9 sm:flex-row sm:gap-1.5 sm:text-sm")}
               >
                 <c.icon />
                 {c.label}

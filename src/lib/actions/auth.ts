@@ -29,7 +29,9 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
       error:
         error.code === "invalid_credentials"
           ? "That email and password don't match. Check them and try again."
-          : "Couldn't sign in right now. Try again in a minute.",
+          : error.code === "user_banned"
+            ? "Your account is switched off. Ask the admin to turn it back on."
+            : "Couldn't sign in right now. Try again in a minute.",
     };
   }
   redirect(safeNext(formData.get("next")));

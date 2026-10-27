@@ -477,11 +477,26 @@ isOneToOne: false
 "lead_rate_limit_hit":
 { Args: { "p_ip_hash": string }; Returns: boolean
                            },
+"mfa_code_needed":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "move_student_stage":
 { Args: { "p_note"?: string,"p_stage": string,"p_student": string }; Returns: undefined
                            },
 "pick_round_robin":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"reorder_document_types":
+{ Args: { "p_ids": (string)[] }; Returns: undefined
+                           },
+"reorder_stages":
+{ Args: { "p_ids": (string)[] }; Returns: undefined
+                           },
+"reorder_steps":
+{ Args: { "p_ids": (string)[] }; Returns: undefined
+                           },
+"reorder_templates":
+{ Args: { "p_ids": (string)[] }; Returns: undefined
                            },
 "stage_gate_missing":
 { Args: { "p_student": string,"p_target_stage": string }; Returns: {

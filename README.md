@@ -42,7 +42,9 @@ Demo logins (local only), password `syb-demo-2026`:
 | anjali@syb.example | Counsellor |
 | rahul@syb.example | Counsellor |
 
-Emails sent locally (password resets, invites) appear in Mailpit at http://127.0.0.1:54324.
+Emails sent locally (password resets) appear in Mailpit at http://127.0.0.1:54324. Emails the CRM itself sends (assignments, daily digest) are saved as HTML files in `.email-previews/` while developing. To try the daily email locally, add `CRON_SECRET=anything` to `.env.local` and run `curl -H "Authorization: Bearer anything" http://localhost:3000/api/cron/daily`.
+
+The app opens in the light theme; anyone can switch to dark mode from the menu.
 
 Useful commands:
 
@@ -118,6 +120,7 @@ In Supabase, open **Project Settings → API Keys** and **Project Settings → D
 | `NEXT_PUBLIC_SITE_URL` | Your live address, e.g. `https://syb-crm.vercel.app` | No |
 | `RESEND_API_KEY` | Optional, see step 7 | **Yes** |
 | `EMAIL_FROM` | Optional, see step 7 | No |
+| `CRON_SECRET` | Make one up: any long random text (30+ characters) | **Yes** |
 
 Put them in `.env.local` on your computer (this file is ignored by git) and in Vercel (next step). The last two are optional.
 
@@ -152,7 +155,7 @@ It asks you to type a password, then creates the admin. Running it for an existi
    update public.profiles set role = 'admin' where email = 'founder@seeyouabroad.in';
    ```
 
-Then sign in at your Vercel address. Staff invites from inside the CRM arrive in Phase 3; until then, add staff the same way as Option B without the SQL (new users are counsellors by default).
+Then sign in at your Vercel address and add the rest of the team from **Settings → Team → Invite someone** (see step 9).
 
 ### 7. Optional: email counsellors when they get a new student
 
@@ -172,6 +175,50 @@ The public form is at `https://YOUR-ADDRESS/apply`. Put that link in your Instag
 
 The form has a consent checkbox (India's DPDP Act), a hidden spam trap, and a limit of 5 enquiries per hour from one connection.
 
+### 9. Add your team
+
+**Settings → Team → Invite someone.** Enter their name and email and choose Counsellor or Admin. The CRM shows a one-time "set your password" link (valid 24 hours). If email is set up (step 7) they also get it by email; otherwise send the link on WhatsApp. Lost password? Use **Options → New password link** on their row.
+
+To stop someone using the CRM, **Options → Switch off account**. They are signed out at once and can't sign in. Their students stay assigned to them until you reassign them from **Students** (filter by counsellor, select all, Assign).
+
+### 10. Daily 8:00 am email
+
+`vercel.json` tells Vercel to run the daily job at 08:00 India time. Each counsellor gets their overdue and today's follow-ups, tasks and stuck students; admins get a team summary. It needs:
+
+1. `CRON_SECRET` in Vercel's environment variables (step 4), so nobody else can trigger it.
+2. Email set up (step 7).
+3. **Settings → Leads and emails → Daily email** switched on (it is by default).
+
+On Vercel's free Hobby plan, daily jobs run once a day but may start any time within that hour.
+
+### 11. Two-step login for admins (recommended)
+
+1. In Supabase: **Authentication → Sign In / Providers → Multi-Factor**: make sure **TOTP (Authenticator app)** is enabled.
+2. In the CRM: click your name (bottom of the sidebar) → **My account → Set up two-step login**, scan the QR code with Google or Microsoft Authenticator, type the code.
+
+From then on, signing in asks for the 6-digit code. Until the code is entered, the database treats the session as having no admin rights, so a stolen password alone can't see student data. Counsellors can turn it on too.
+
+### 12. Weekly backup
+
+`.github/workflows/weekly-backup.yml` copies the whole database every Monday at 02:00 India time, encrypts it, and keeps it in GitHub for 90 days. Set it up once:
+
+1. Supabase: **Connect** (top bar) → **Session pooler** → copy the connection string and put your database password in it.
+2. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**:
+   - `SUPABASE_DB_URL` = that connection string
+   - `BACKUP_PASSPHRASE` = a long passphrase. Save it in your password manager: without it the backup can't be opened.
+3. **Actions → Weekly database backup → Run workflow** to test it. A file appears under **Artifacts** on the run page.
+
+To open a backup: download the artifact, then
+`gpg -d syb-crm-YYYY-MM-DD.tar.gz.gpg | tar -xz` (it asks for the passphrase). You get `roles.sql`, `schema.sql` and `data.sql`; Supabase's guide "Restore a backup to a new project" shows how to load them.
+
+### 13. Put it on phones
+
+Open the CRM address in the phone's browser and sign in, then:
+- **Android (Chrome):** menu ⋮ → **Add to Home screen** / **Install app**.
+- **iPhone (Safari):** Share → **Add to Home Screen**.
+
+It opens full-screen with the See You Abroad eye icon, like an app.
+
 ---
 
 ## How the security works
@@ -181,4 +228,6 @@ The form has a consent checkbox (India's DPDP Act), a hidden spam trap, and a li
 - The secret key is only used in server files marked `server-only`. It is never sent to the browser.
 - Stage moves are checked in the database: a student can't move forward until every required, visible step is done. Admin can override with a written reason, which is saved in the history.
 - Every stage change, step tick, payment change and reassignment is written to `activity_log` by database triggers, with who did it and when.
+- An admin with two-step login switched on has no admin rights in the database until the 6-digit code is entered.
+- Switched-off staff are blocked at login and lose all access immediately.
 - Run `npm run db:test` to check all of this against the local database.

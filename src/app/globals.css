@@ -7,7 +7,8 @@
 /*
   See You Abroad theme: black with one strong blue.
   Blue only means "act here": primary buttons, links, active nav, focus rings, current stage.
-  Change the brand colour in one place: --brand (dark) and --brand (light).
+  Light is the default theme; dark is available from the menu.
+  Change the brand colour in one place: --brand (light, below) and --brand (dark).
 */
 
 @theme inline {
@@ -31,6 +32,7 @@
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-chart-context: var(--chart-context);
 
   /* shadcn/ui mapping */
   --color-background: var(--bg);
@@ -78,7 +80,7 @@
   --text-2xs: 11px;
 }
 
-/* Light */
+/* Light (default) */
 :root {
   --bg: #ffffff;
   --surface: #f6f8fb;
@@ -95,12 +97,13 @@
   --warning-soft: rgb(217 119 6 / 0.12);
   --danger: #dc2626;
   --danger-soft: rgb(220 38 38 / 0.1);
+  --chart-context: #7d8696;
   --radius: 8px;
   --shadow-card: 0 1px 2px rgb(10 10 11 / 0.04);
   color-scheme: light;
 }
 
-/* Dark (default) */
+/* Dark (optional, from the menu) */
 .dark {
   --bg: #0a0a0b;
   --surface: #121418;
@@ -117,6 +120,7 @@
   --warning-soft: rgb(245 165 36 / 0.14);
   --danger: #ef4444;
   --danger-soft: rgb(239 68 68 / 0.14);
+  --chart-context: #6f7889;
   --shadow-card: none;
   color-scheme: dark;
 }

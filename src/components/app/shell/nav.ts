@@ -1,4 +1,4 @@
-import { CheckSquare, Columns3, Inbox, type LucideIcon, Users, Wallet } from "lucide-react";
+import { BarChart3, CheckSquare, Columns3, Inbox, type LucideIcon, Settings, Users, Wallet } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -16,6 +16,8 @@ export const NAV: NavItem[] = [
   { href: "/students", label: "Students", icon: Users, mobile: true },
   { href: "/leads", label: "New leads", icon: Inbox, adminOnly: true, badge: "leads" },
   { href: "/payments", label: "Payments", icon: Wallet },
+  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
 ];
 
 export function isActive(pathname: string, href: string) {

@@ -17,7 +17,11 @@ export function StudentWorkspace({
   universities,
   team,
   isAdmin,
+  templates,
+  myName,
 }: {
+  templates: { id: string; name: string; body: string }[];
+  myName: string;
   profile: StudentProfile;
   stages: Stage[];
   universities: { id: string; name: string; city: string | null }[];
@@ -37,6 +41,8 @@ export function StudentWorkspace({
         team={team}
         lostOpen={lostOpen}
         setLostOpen={setLostOpen}
+        templates={templates}
+        myName={myName}
       />
       <div className="grid items-start gap-4 px-4 pt-5 pb-10 md:grid-cols-[minmax(0,1fr)_300px] md:gap-6 md:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Side column: follow-up first on phones (always visible), tasks after the tabs. */}
