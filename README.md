@@ -100,13 +100,32 @@ In Supabase, open **Authentication**:
 2. **URL Configuration**:
    - **Site URL**: your live address, e.g. `https://syb-crm.vercel.app` (update it after step 5 if you don't know it yet).
    - **Redirect URLs**: add `https://syb-crm.vercel.app/**` (and `http://localhost:3000/**` for local testing).
-3. **Emails → Templates**:
-   - **Reset Password**: replace the message body with the contents of `supabase/templates/recovery.html`.
-   - **Invite user**: replace the message body with `supabase/templates/invite.html`.
+3. **Emails → Templates** (this changes the "forgot password" email so its link opens the CRM's own "choose a password" page):
+   1. Click the **Reset Password** template.
+   2. **Subject**: `Reset your SYB CRM password`
+   3. **Message body**: delete what's there and paste everything from `supabase/templates/recovery.html`.
+   4. Click **Save**.
+   5. Optional: do the same for **Invite user** with `supabase/templates/invite.html`. The CRM's own **Settings → Team → Invite someone** doesn't use this template; it only matters if you ever invite people from the Supabase dashboard.
 
-   These make the links open the CRM's own "choose a password" page.
+   The link in the email uses the **Site URL** from step 3.2, so set that to your real CRM address first.
 
-> Supabase's built-in email sender only allows a few emails per hour. That's fine for password resets in a small team. For more, connect your own email sender under **Project Settings → Authentication → SMTP** (we'll set up Resend in Phase 2; it has a free tier).
+4. **Own email sender (recommended once you go live).** Supabase's built-in sender is for testing: it sends only a few emails per hour and may refuse addresses outside your Supabase team. Connect Resend (free tier) so password-reset emails reach everyone:
+   1. Do step 7 first (Resend account, verified domain, API key). You can reuse the same key.
+   2. In Supabase: **Authentication → Emails → SMTP Settings** (older dashboards: **Project Settings → Authentication → SMTP Settings**). Turn on **Enable custom SMTP**.
+   3. Fill in:
+      | Field | Value |
+      |---|---|
+      | Sender email | `crm@seeyouabroad.in` (any address on your verified domain) |
+      | Sender name | `SYB CRM` |
+      | Host | `smtp.resend.com` |
+      | Port | `465` |
+      | Username | `resend` |
+      | Password | your Resend API key (`re_…`) |
+   4. Click **Save**.
+   5. **Authentication → Rate Limits**: raise "Rate limit for sending emails" if needed (e.g. 30 per hour).
+   6. Test: open your CRM's **Forgot password?** page, enter your email, and check the email arrives from `crm@…`.
+
+   Shortcut: Resend also offers a Supabase integration (**Resend → Integrations → Supabase**) that fills in these SMTP settings for you.
 
 ### 4. Copy the keys (environment variables)
 
